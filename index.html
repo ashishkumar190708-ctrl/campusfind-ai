@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>CampusFind AI — Lost & Found</title>
+<style>
+:root {
+  --bg:#0b1220; --panel:#121d30; --panel2:#18263d;
+  --text:#eef4ff; --muted:#aab8cf; --accent:#65e0b0;
+  --border:#2a3a54;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:linear-gradient(160deg,#101b30,#080d17 65%);
+  color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  line-height:1.5;
+}
+header {
+  padding:26px 18px 22px;
+  background:radial-gradient(ellipse at top right,#244b5b 0,transparent 55%);
+  border-bottom:1px solid var(--border);
+}
+.wrap { max-width:900px; margin:auto; }
+.tag {
+  display:inline-block; color:#071711; background:var(--accent);
+  font-weight:800; border-radius:99px; padding:4px 10px;
+  font-size:12px; letter-spacing:.06em;
+}
+h1 { font-size:clamp(28px,6vw,44px); line-height:1.12; margin:12px 0 8px; }
+header p { color:var(--muted); margin:0; max-width:620px; }
+main { max-width:900px; margin:auto; padding:18px; display:grid; gap:16px; }
+.panel {
+  background:rgba(18,29,48,.95); border:1px solid var(--border);
+  border-radius:18px; padding:17px; box-shadow:0 12px 30px #0002;
+}
+h2 { font-size:20px; margin:0 0 12px; }
+.muted { color:var(--muted); font-size:14px; }
+.tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.tab,button {
+  font:inherit; border:0; border-radius:11px;
+  padding:10px 14px; font-weight:700; cursor:pointer;
+}
+.tab { background:var(--panel2); color:var(--muted); border:1px solid var(--border); }
+.tab.active { background:var(--accent); color:#071711; }
+label { display:block; font-size:13px; color:var(--muted); margin:10px 0 5px; }
+input,select,textarea {
+  width:100%; padding:11px 12px; border:1px solid var(--border);
+  border-radius:10px; background:#0b1423; color:var(--text); font:inherit;
+}
+textarea { min-height:82px; resize:vertical; }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; }
+.wide { grid-column:1/-1; }
+.primary { background:var(--accent); color:#071711; }
+.secondary { background:var(--panel2); border:1px solid var(--border); color:var(--text); }
+.searchrow { display:flex; gap:8px; }
+.searchrow input { min-width:0; }
+.cards { display:grid; gap:10px; margin-top:12px; }
+.item { border:1px solid var(--border); border-radius:13px; padding:13px; background:#0d1727; }
+.itemtop { display:flex; justify-content:space-between; gap:10px; align-items:start; }
+.item h3 { margin:0 0 5px; font-size:17px; overflow-wrap:anywhere; }
+.pill { display:inline-block; border-radius:99px; padding:3px 8px; font-size:11px; font-weight:800; background:#243e55; color:#cde8ff; }
+.pill.lost { background:#482d36; color:#ffd6dc; }
+.pill.found { background:#174638; color:#c9ffeb; }
+.item p { margin:7px 0; color:var(--muted); font-size:14px; overflow-wrap:anywhere; }
+.empty { padding:18px; text-align:center; color:var(--muted); border:1px dashed var(--border); border-radius:12px; }
+.notice { font-size:13px; color:var(--muted); padding:10px 12px; background:#0b1423; border-radius:10px; border:1px solid var(--border); }
+.match { color:var(--accent); font-size:12px; font-weight:700; }
+footer { text-align:center; padding:8px 18px 30px; color:var(--muted); font-size:12px; }
+@media(max-width:560px) {
+  .grid { grid-template-columns:1fr; }
+  .wide { grid-column:auto; }
+  .searchrow { flex-direction:column; }
+  main { padding:12px; }
+  .panel { padding:14px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="tag">CAMPUS • LOST & FOUND</span>
+    <h1>CampusFind <span style="color:var(--accent)">AI</span></h1>
+    <p>A simple campus lost-and-found board with smart keyword matching. Report an item, search reports, and help it find its owner.</p>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Find an item</h2>
+    <div class="searchrow">
+      <input id="search" placeholder="Try: black wallet, blue bottle, classroom…" aria-label="Search reports">
+      <button class="primary" id="searchBtn">Search</button>
+    </div>
+    <p class="muted">Search checks item names, descriptions, categories and locations.</p>
+    <div id="matches" class="cards"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Report an item</h2>
+    <div class="tabs">
+      <button class="tab active" data-kind="lost" type="button">I lost something</button>
+      <button class="tab" data-kind="found" type="button">I found something</button>
+    </div>
+
+    <form id="reportForm">
+      <input type="hidden" id="kind" value="lost">
+      <div class="grid">
+        <div>
+          <label for="name">Item name *</label>
+          <input id="name" required maxlength="80" placeholder="e.g. Black wallet">
+        </div>
+        <div>
+          <label for="category">Category</label>
+          <select id="category">
+            <option>Electronics</option>
+            <option>Books & stationery</option>
+            <option>Wallet / ID card</option>
+            <option>Keys</option>
+            <option>Water bottle</option>
+            <option>Clothing</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="block">Building / block</label>
+          <input id="block" placeholder="e.g. Block A">
+        </div>
+        <div>
+          <label for="floor">Floor</label>
+          <select id="floor">
+            <option>Unknown</option>
+            <option>Ground floor</option>
+            <option>1st floor</option>
+            <option>2nd floor</option>
+            <option>3rd floor</option>
+            <option>4th floor</option>
+            <option>5th floor</option>
+          </select>
+        </div>
+        <div class="wide">
+          <label for="place">Specific location</label>
+          <input id="place" placeholder="e.g. Library, Room 204, canteen">
+        </div>
+        <div>
+          <label for="date">Date</label>
+          <input id="date" type="date">
+        </div>
+        <div>
+          <label for="contact">Contact info (optional)</label>
+          <input id="contact" maxlength="100" placeholder="Email or safe contact method">
+        </div>
+        <div class="wide">
+          <label for="description">Description *</label>
+          <textarea id="description" required maxlength="500" placeholder="Colour, brand, identifying details…"></textarea>
+        </div>
+      </div>
+
+      <p class="notice">Privacy tip: don't post passwords, full ID numbers, or sensitive personal details.</p>
+      <p>
+        <button class="primary" type="submit">Post report</button>
+        <button class="secondary" type="button" id="demoBtn">Load sample reports</button>
+      </p>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Recent reports <span id="count" class="muted"></span></h2>
+    <div class="tabs">
+      <button class="tab active" data-filter="all" type="button">All</button>
+      <button class="tab" data-filter="lost" type="button">Lost</button>
+      <button class="tab" data-filter="found" type="button">Found</button>
+    </div>
+    <div id="reports" class="cards"></div>
+    <p class="notice">Demo version: reports are saved only in this browser on this device. For a real campus-wide system, connect a shared database later.</p>
+  </section>
+</main>
+
+<footer>CampusFind AI • Student project prototype</footer>
+
+<script>
+(function() {
+  const $ = id => document.getElementById(id);
+  const STORE = 'campusfind-ai-reports-v1';
+  let filter = 'all';
+  let query = '';
+  let reports = [];
+
+  try {
+    reports = JSON.parse(localStorage.getItem(STORE) || '[]');
+    if (!Array.isArray(reports)) reports = [];
+  } catch(e) {
+    reports = [];
+  }
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[c]));
+
+  const save = () => {
+    try { localStorage.setItem(STORE, JSON.stringify(reports)); }
+    catch(e) {}
+  };
+
+  const textOf = r => [
+    r.name, r.category, r.block, r.floor,
+    r.place, r.description, r.kind
+  ].join(' ').toLowerCase();
+
+  function score(r, q) {
+    const terms = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!terms.length) return 0;
+    const hay = textOf(r);
+    let n = 0;
+    terms.forEach(t => { if (hay.includes(t)) n += 2; });
+    if (r.name.toLowerCase().includes(q.toLowerCase().trim())) n += 3;
+    return n / terms.length;
+  }
+
+  function card(r, showMatch) {
+    const sc = query ? score(r, query) : 0;
+    return `
+      <article class="item">
+        <div class="itemtop">
+          <div>
+            <h3>${esc(r.name)}</h3>
+            <span class="pill ${r.kind}">${r.kind === 'lost' ? 'LOST' : 'FOUND'}</span>
+            <span class="pill">${esc(r.category)}</span>
+          </div>
+          ${showMatch && sc > 0 ? `<span class="match">Possible match</span>` : ''}
+        </div>
+        <p>${esc(r.description)}</p>
+        <p>📍 ${esc([r.block,r.floor,r.place].filter(Boolean).join(' · ') || 'Location unknown')}</p>
+        <p>📅 ${esc(r.date || 'Date not given')}${r.contact ? ' · ☎ ' + esc(r.contact) : ''}</p>
+        <button class="secondary" type="button" data-delete="${esc(r.id)}">Delete</button>
+      </article>`;
+  }
+
+  function render() {
+    const visible = reports.filter(r => filter === 'all' || r.kind === filter).slice().reverse();
+    $('count').textContent = `(${reports.length})`;
+    $('reports').innerHTML = visible.length
+      ? visible.map(r => card(r, false)).join('')
+      : '<div class="empty">No reports yet. Add a report or load sample reports.</div>';
+
+    if (query) {
+      const ranked = reports
+        .map(r => ({...r, _score:score(r,query)}))
+        .filter(r => r._score > 0)
+        .sort((a,b) => b._score - a._score)
+        .slice(0,6);
+      $('matches').innerHTML = ranked.length
+        ? ranked.map(r => card(r,true)).join('')
+        : '<div class="empty">No close matches yet. Try different keywords or add a report.</div>';
+    } else {
+      $('matches').innerHTML = '<div class="empty">Search for an item to see possible matches.</div>';
+    }
+  }
+
+  document.querySelectorAll('[data-kind]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-kind]').forEach(x => x.classList.toggle('active', x === b));
+      $('kind').value = b.dataset.kind;
+    });
+  });
+
+  document.querySelectorAll('[data-filter]').forEach(b => {
+    b.addEventListener('click', () => {
+      filter = b.dataset.filter;
+      document.querySelectorAll('[data-filter]').forEach(x => x.classList.toggle('active', x === b));
+      render();
+    });
+  });
+
+  $('reportForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('name').value.trim();
+    const description = $('description').value.trim();
+
+    if (!name || !description) {
+      alert('Please enter the item name and description.');
+      return;
+    }
+
+    reports.push({
+      id: String(Date.now()) + Math.random().toString(16).slice(2),
+      kind: $('kind').value,
+      name,
+      category: $('category').value,
+      block: $('block').value.trim(),
+      floor: $('floor').value,
+      place: $('place').value.trim(),
+      date: $('date').value,
+      contact: $('contact').value.trim(),
+      description
+    });
+
+    save();
+    e.target.reset();
+    $('kind').value = 'lost';
+    document.querySelectorAll('[data-kind]').forEach(x => x.classList.toggle('active', x.dataset.kind === 'lost'));
+    render();
+    alert('Report added!');
+  });
+
+  function doSearch() {
+    query = $('search').value.trim();
+    render();
+  }
+
+  $('searchBtn').addEventListener('click', doSearch);
+  $('search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doSearch();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-delete]');
+    if (!b) return;
+    const id = b.dataset.delete;
+    if (confirm('Delete this report from this device?')) {
+      reports = reports.filter(r => r.id !== id);
+      save();
+      render();
+    }
+  });
+
+  $('demoBtn').addEventListener('click', () => {
+    if (reports.length && !confirm('Add sample reports to the existing list?')) return;
+
+    const today = new Date().toISOString().slice(0,10);
+    const samples = [
+      {
+        kind:'lost', name:'Black wallet', category:'Wallet / ID card',
+        block:'Block A', floor:'1st floor', place:'Library entrance',
+        date:today, description:'Small black wallet with cards inside', contact:''
+      },
+      {
+        kind:'found', name:'Blue water bottle', category:'Water bottle',
+        block:'Block B', floor:'Ground floor', place:'Canteen',
+        date:today, description:'Blue stainless steel bottle left on a table', contact:''
+      },
+      {
+        kind:'lost', name:'Scientific calculator', category:'Electronics',
+        block:'Block C', floor:'2nd floor', place:'Room 204',
+        date:today, description:'Grey scientific calculator with black buttons', contact:''
+      }
+    ];
+
+    samples.forEach(r => reports.push({
+      ...r, id:String(Date.now()) + Math.random().toString(16).slice(2)
+    }));
+
+    save();
+    render();
+    alert('Sample reports added. Try searching “blue bottle” or “calculator”.');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
